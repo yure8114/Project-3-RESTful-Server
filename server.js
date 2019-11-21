@@ -3,6 +3,7 @@ var path = require('path')
 var express = require('express')
 var sqlite3 = require('sqlite3')
 var bodyParser = require('body-parser');
+var js2xmlparser = require("js2xmlparser");
 var port = 8000;
 
 var db_filename = path.join(__dirname, 'db', 'stpaul_crime.sqlite3');
@@ -24,10 +25,33 @@ app.use(bodyParser.urlencoded({extended: true}));
 
 app.get('/codes', (req, res) => {
     var codes = {};
-
-    db.all("SELECT Codes.code AS Code, Codes.incident_type AS incident_type FROM Codes", (err,rows) =>{
     
-           
+
+    if (req.query.format != null)
+    {
+        var format = req.query.format;
+    }
+    else {
+        var format = 'json';
+    }
+    if (req.query.code != null)
+    {
+        var jQ = req.query.code;
+        var ArrayjQ = jQ.split(',');
+        var first = parseInt(ArrayjQ[0]);
+        var second = parseInt(ArrayjQ[1]);
+
+    }
+    else {
+        var first = 0;
+        var second = 10000;   
+     }
+
+
+
+    db.all("SELECT Codes.code AS Code, Codes.incident_type AS incident_type FROM Codes WHERE Code BETWEEN ? AND ?", [first, second], (err,rows) =>{
+    
+        console.log(rows.length);       
         for (var i = 0; i < rows.length; i++)
         {
     
@@ -35,8 +59,16 @@ app.get('/codes', (req, res) => {
             var incident = rows[i].incident_type;
             codes["C" + code] = incident;
         }
-         
-        res.type('json').send(codes);
+        
+        if (format == 'xml')
+        {
+            xmlRes = js2xmlparser.parse("Codes", codes);
+            res.type('xml').send(xmlRes);
+        }
+        else{
+            res.type('json').send(codes);
+        }
+        
     });
     
    
@@ -48,7 +80,28 @@ app.get('/codes', (req, res) => {
 app.get('/neighborhoods', (req, res) => {
     var neighborhoods = {};
 
-    db.all("SELECT Neighborhoods.neighborhood_number AS number, Neighborhoods.neighborhood_name AS name FROM Neighborhoods", (err,rows) =>{
+    if (req.query.format != null)
+    {
+        var format = req.query.format;
+    }
+    else {
+        var format = 'json';
+    }
+    if (req.query.id != null)
+    {
+        var jQ = req.query.id;
+        var ArrayjQ = jQ.split(',');
+        var first = parseInt(ArrayjQ[0]);
+        var second = parseInt(ArrayjQ[1]);
+
+    }
+    else {
+        var first = 0;
+        var second = 10000;   
+     }
+
+    db.all(`SELECT Neighborhoods.neighborhood_number AS number, Neighborhoods.neighborhood_name AS name FROM Neighborhoods
+     WHERE number BETWEEN ? AND ?`,[first, second], (err,rows) =>{
     
            
         for (var i = 0; i < rows.length; i++)
@@ -59,7 +112,14 @@ app.get('/neighborhoods', (req, res) => {
             neighborhoods["N" + number] = name;
         }
          
-        res.type('json').send(neighborhoods);
+        if (format == 'xml')
+        {
+            xmlRes = js2xmlparser.parse("IDs", neighborhoods);
+            res.type('xml').send(xmlRes);
+        }
+        else{
+            res.type('json').send(neighborhoods);
+        }
     });
     
    
